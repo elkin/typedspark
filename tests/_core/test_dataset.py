@@ -4,6 +4,7 @@ import pandas as pd
 import pytest
 from pyspark import StorageLevel
 from pyspark.sql import DataFrame, SparkSession
+from pyspark import __version__ as pyspark_version
 from pyspark.sql.types import LongType, StringType
 
 from typedspark import Column, DataSet, Schema
@@ -139,3 +140,32 @@ def test_resetting_of_schema_annotations(spark: SparkSession):
     # and then to None again
     a = DataSet(df)
     assert a._schema_annotations is None
+
+
+def _is_pyspark_v4() -> bool:
+    try:
+        return int(pyspark_version.split(".")[0]) >= 4
+    except ValueError:
+        return False
+
+
+def test_dataset_does_not_mutate_original_dataframe_class(spark: SparkSession):
+    df = create_empty_dataset(spark, A)
+
+    original_class = df.__class__
+
+    dataset = DataSet[A](df)
+
+    assert df.__class__ is original_class
+    assert isinstance(dataset, DataSet)
+    assert dataset._schema_annotations == A
+
+
+@pytest.mark.skipif(not _is_pyspark_v4(), reason="Requires PySpark 4.x")
+def test_dataset_initialization_with_pyspark_four(spark: SparkSession):
+    df = create_empty_dataset(spark, A)
+
+    dataset = DataSet[A](df)
+
+    assert isinstance(dataset, DataSet)
+    assert dataset._schema_annotations == A

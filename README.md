@@ -52,6 +52,8 @@ By default, ``typedspark`` does not list ``pyspark`` as a dependency, since many
 pip install "typedspark[pyspark]"
 ```
 
+The optional ``pyspark`` extra installs ``pyspark>=4,<5`` so you can take advantage of PySpark 4 support out of the box.
+
 ## Demo videos
 
 ### IDE demo

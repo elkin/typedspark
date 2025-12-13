@@ -5,8 +5,10 @@ from pyspark.sql.types import LongType
 from pyspark.sql.types import MapType as SparkMapType
 from pyspark.sql.types import StringType, StructField
 from pyspark.sql.types import StructType as SparkStructType
+from pyspark.sql.types import DataType
 
 from typedspark import ArrayType, Column, DataSet, MapType, Schema, StructType, create_empty_dataset
+from typedspark._core.validate_schema import validate_schema
 
 
 class SubSchema(Schema):
@@ -79,3 +81,26 @@ def test_complex_datatypes_not_equals(spark: SparkSession):
     with pytest.raises(TypeError):
         df3 = create_empty_dataset(spark, StructTypeSchema)
         DataSet[DifferentStructTypeSchema](df3)
+
+
+class MockIntervalType(DataType):
+    def jsonValue(self):
+        return {"type": "mockinterval", "startField": "day", "endField": "second"}
+
+    def simpleString(self):  # pragma: no cover - Spark's DataType expects this repr
+        return "mockinterval"
+
+
+def test_validate_schema_supports_new_datatype_shapes():
+    expected = SparkStructType([StructField("a", MockIntervalType(), True)])
+    observed = SparkStructType([StructField("a", MockIntervalType(), True)])
+
+    validate_schema(expected, observed, "MockSchema")
+
+
+def test_validate_schema_rejects_mismatched_new_datatype():
+    expected = SparkStructType([StructField("a", MockIntervalType(), True)])
+    observed = SparkStructType([StructField("a", StringType(), True)])
+
+    with pytest.raises(TypeError):
+        validate_schema(expected, observed, "MockSchema")

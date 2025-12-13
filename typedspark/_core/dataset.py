@@ -178,26 +178,22 @@ class DataSet(DataSetImplements[_Schema, _Schema]):
     def __new__(cls, dataframe: DataFrame) -> DataSet[_Schema]:
         """``__new__()`` instantiates the object (prior to ``__init__()``).
 
-        Here, we simply take the provided ``df`` and cast it to a
-        ``DataSet``. This allows us to bypass the ``DataFrame``
-        constuctor in ``__init__()``, which requires parameters that may
-        be difficult to access. Subsequently, we perform schema validation, if
-        the schema annotations are provided.
+        ``DataSet`` instances mirror the provided ``DataFrame`` while making sure the
+        parent ``DataFrame`` constructor runs. This keeps PySpark's internal state intact
+        across versions (including PySpark 4) before performing schema validation.
         """
-        dataframe = cast(DataSet, dataframe)
-        dataframe.__class__ = DataSet
+        dataset = cast(DataSet, super().__new__(cls))
+        dataset._reset_from_dataframe(dataframe)
 
-        # first we reset the schema annotations to None, in case they are inherrited through the
-        # passed DataFrame
-        dataframe._schema_annotations = None  # type: ignore
+        dataset._schema_annotations = None  # type: ignore[attr-defined]
 
         # then we use the class' schema annotations to validate the schema and add metadata
         if hasattr(cls, "_schema_annotations"):
-            dataframe._schema_annotations = cls._schema_annotations  # type: ignore
-            dataframe._validate_schema()
-            dataframe._add_schema_metadata()
+            dataset._schema_annotations = cls._schema_annotations  # type: ignore[attr-defined]
+            dataset._validate_schema()
+            dataset._add_schema_metadata()
 
-        return dataframe  # type: ignore
+        return dataset
 
     def __init__(self, dataframe: DataFrame):
         pass
@@ -211,6 +207,23 @@ class DataSet(DataSetImplements[_Schema, _Schema]):
         subclass_name = f"{cls.__name__}[{item.__name__}]"
         subclass = type(subclass_name, (cls,), {"_schema_annotations": item})
         return subclass
+
+    def _reset_from_dataframe(self, dataframe: DataFrame) -> None:
+        """Re-initialize ``DataFrame`` internals on the current instance.
+
+        We avoid reassigning ``__class__`` on the provided dataframe to ensure the parent
+        constructor runs (required by PySpark 4's ``DataFrame`` initialization).
+        """
+
+        sql_context = getattr(dataframe, "sql_ctx", None)
+        if sql_context is None:
+            spark_session = getattr(dataframe, "sparkSession", None)
+            sql_context = getattr(spark_session, "_wrapped", spark_session)
+
+        if sql_context is None:
+            raise TypeError("Cannot construct DataSet without an attached Spark session or SQL context")
+
+        DataFrame.__init__(self, dataframe._jdf, sql_context)  # type: ignore[arg-type]
 
     def _validate_schema(self) -> None:
         """Validates the schema of the ``DataSet`` against the schema annotations."""

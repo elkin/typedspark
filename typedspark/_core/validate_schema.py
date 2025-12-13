@@ -89,6 +89,9 @@ def check_dtype(
     if dtype_expected == dtype_observed:
         return None
 
+    if dtype_expected.jsonValue() == dtype_observed.jsonValue():
+        return None
+
     if isinstance(dtype_expected, ArrayType) and isinstance(dtype_observed, ArrayType):
         return check_dtype(
             f"{colname}.element_type",
