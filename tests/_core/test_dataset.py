@@ -4,7 +4,8 @@ import pandas as pd
 import pytest
 from pyspark import StorageLevel
 from pyspark.sql import DataFrame, SparkSession
-from pyspark.sql.types import LongType, StringType
+from pyspark.sql import functions as F
+from pyspark.sql.types import LongType, StringType, TimestampType
 
 from typedspark import Column, DataSet, Schema
 from typedspark._core.dataset import DataSetImplements
@@ -19,6 +20,11 @@ class A(Schema):
 class B(Schema):
     a: Column[LongType]
     b: Column[StringType]
+
+
+class Rate(Schema):
+    timestamp: Column[TimestampType]
+    value: Column[LongType]
 
 
 def create_dataframe(spark: SparkSession, d):
@@ -80,16 +86,51 @@ def test_wrong_type(spark: SparkSession):
 def test_inherrited_functions(spark: SparkSession):
     df = create_empty_dataset(spark, A)
 
-    df.distinct()
+    assert isinstance(df.distinct(), DataSet)
+    assert isinstance(df.dropDuplicates(["a"]), DataSet)
+    assert isinstance(df.drop_duplicates(["a"]), DataSet)
+    assert isinstance(df.dropna(), DataSet)
+    assert isinstance(df.fillna(1), DataSet)
+    assert isinstance(df.replace(1, 2), DataSet)
+    assert isinstance(df.repartition(2), DataSet)
+    assert isinstance(df.repartition(2, A.a), DataSet)
+    assert isinstance(df.repartitionByRange(2, A.a), DataSet)
+    assert isinstance(df.limit(1), DataSet)
+    assert isinstance(df.coalesce(1), DataSet)
+    assert isinstance(df.sample(True, 0.5, 1), DataSet)
+    assert isinstance(df.sampleBy("a", {1: 0.5}), DataSet)
+    assert isinstance(df.sort(A.a), DataSet)
+    assert isinstance(df.sortWithinPartitions(A.a), DataSet)
     cached1: DataSet[A] = df.cache()
     cached2: DataSet[A] = df.persist(StorageLevel.MEMORY_AND_DISK)
     assert isinstance(df.filter(A.a == 1), DataSet)
     assert isinstance(df.where(A.a == 1), DataSet)
-    df.orderBy(A.a)
-    df.transform(lambda df: df)
+    assert isinstance(df.orderBy(A.a), DataSet)
+    assert isinstance(df.hint("broadcast"), DataSet)
+    if hasattr(DataFrame, "observe"):
+        assert isinstance(df.observe("obs", F.count("*").alias("cnt")), DataSet)
+    assert isinstance(df.transform(lambda df: df), DataSet)
 
     cached1.unpersist(True)
     cached2.unpersist(True)
+
+
+def test_inherrited_checkpoint_functions(spark: SparkSession, tmp_path):
+    df = create_empty_dataset(spark, A)
+
+    spark.sparkContext.setCheckpointDir(str(tmp_path))
+    assert isinstance(df.localCheckpoint(), DataSet)
+    assert isinstance(df.checkpoint(), DataSet)
+
+
+def test_inherrited_drop_duplicates_within_watermark(spark: SparkSession):
+    if not hasattr(DataFrame, "dropDuplicatesWithinWatermark"):
+        pytest.skip("dropDuplicatesWithinWatermark not available in this Spark version")
+
+    stream_df = spark.readStream.format("rate").load()
+    watermarked = stream_df.withWatermark("timestamp", "1 minute")
+    ds = DataSet[Rate](watermarked)
+    assert isinstance(ds.dropDuplicatesWithinWatermark(["value"]), DataSet)
 
 
 def test_inherrited_functions_with_other_dataset(spark: SparkSession):
@@ -97,7 +138,13 @@ def test_inherrited_functions_with_other_dataset(spark: SparkSession):
     df_b = create_empty_dataset(spark, A)
 
     df_a.join(df_b, A.a.str)
+    assert isinstance(df_a.union(df_b), DataSet)
+    assert isinstance(df_a.unionAll(df_b), DataSet)
     df_a.unionByName(df_b)
+    assert isinstance(df_a.intersect(df_b), DataSet)
+    assert isinstance(df_a.intersectAll(df_b), DataSet)
+    assert isinstance(df_a.exceptAll(df_b), DataSet)
+    assert isinstance(df_a.subtract(df_b), DataSet)
 
 
 def test_schema_property_of_dataset(spark: SparkSession):
