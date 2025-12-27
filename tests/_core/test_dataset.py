@@ -1,5 +1,4 @@
 import functools
-import inspect
 
 import pandas as pd
 import pytest
@@ -95,7 +94,15 @@ def test_inherrited_functions(spark: SparkSession):
     assert isinstance(df.replace(1, 2), DataSet)
     assert isinstance(df.repartition(2), DataSet)
     assert isinstance(df.repartition(2, A.a), DataSet)
+    assert isinstance(df.repartition(A.a), DataSet)
+    assert isinstance(df.repartition(None, A.a), DataSet)
+    assert isinstance(DataSetImplements.repartition(df, A.a), DataSet)
+    assert isinstance(DataSetImplements.repartition(df, None, A.a), DataSet)
     assert isinstance(df.repartitionByRange(2, A.a), DataSet)
+    assert isinstance(df.repartitionByRange(A.a), DataSet)
+    assert isinstance(df.repartitionByRange(None, A.a), DataSet)
+    assert isinstance(DataSetImplements.repartitionByRange(df, A.a), DataSet)
+    assert isinstance(DataSetImplements.repartitionByRange(df, None, A.a), DataSet)
     assert isinstance(df.limit(1), DataSet)
     assert isinstance(df.coalesce(1), DataSet)
     assert isinstance(df.sample(True, 0.5, 1), DataSet)
@@ -124,13 +131,38 @@ def test_inherrited_checkpoint_functions(spark: SparkSession, tmp_path):
     assert isinstance(df.checkpoint(), DataSet)
 
 
-def test_local_checkpoint_storage_level_fallback(spark: SparkSession, tmp_path):
-    signature = inspect.signature(DataFrame.localCheckpoint)
-    if "storageLevel" in signature.parameters:
-        pytest.skip("localCheckpoint supports storageLevel in this Spark version")
-
+def test_local_checkpoint_storage_level_fallback(spark: SparkSession, tmp_path, monkeypatch):
     df = create_empty_dataset(spark, A)
     spark.sparkContext.setCheckpointDir(str(tmp_path))
+    base_df_cls = next(cls for cls in type(df).mro() if cls.__name__ == "DataFrame")
+    original = base_df_cls.localCheckpoint
+    flags = {"raised": False, "called_fallback": False}
+
+    def legacy_local_checkpoint(self, eager=True, storageLevel=None):
+        if storageLevel is not None:
+            flags["raised"] = True
+            raise TypeError("legacy localCheckpoint without storageLevel support")
+        flags["called_fallback"] = True
+        return original(self, eager)
+
+    monkeypatch.setattr(base_df_cls, "localCheckpoint", legacy_local_checkpoint)
+
+    assert isinstance(df.localCheckpoint(storageLevel=StorageLevel.MEMORY_AND_DISK), DataSet)
+    assert isinstance(
+        DataSetImplements.localCheckpoint(df, storageLevel=StorageLevel.MEMORY_AND_DISK),
+        DataSet,
+    )
+    assert flags["raised"]
+    assert flags["called_fallback"]
+
+    original_ds_local_checkpoint = DataSetImplements.localCheckpoint
+
+    def legacy_ds_local_checkpoint(self, eager=True, storageLevel=None):
+        if storageLevel is not None:
+            raise TypeError("legacy DataSetImplements localCheckpoint without storageLevel support")
+        return original_ds_local_checkpoint(self, eager)
+
+    monkeypatch.setattr(DataSetImplements, "localCheckpoint", legacy_ds_local_checkpoint)
     assert isinstance(df.localCheckpoint(storageLevel=StorageLevel.MEMORY_AND_DISK), DataSet)
 
 
@@ -147,15 +179,29 @@ def test_inherrited_drop_duplicates_within_watermark(spark: SparkSession):
 def test_inherrited_functions_with_other_dataset(spark: SparkSession):
     df_a = create_empty_dataset(spark, A)
     df_b = create_empty_dataset(spark, A)
+    df_plain = df_b.select("a", "b")
 
     df_a.join(df_b, A.a.str)
     assert isinstance(df_a.union(df_b), DataSet)
     assert isinstance(df_a.unionAll(df_b), DataSet)
+    assert isinstance(df_a.union(df_plain), DataFrame)
+    assert isinstance(df_a.unionAll(df_plain), DataFrame)
     df_a.unionByName(df_b)
     assert isinstance(df_a.intersect(df_b), DataSet)
     assert isinstance(df_a.intersectAll(df_b), DataSet)
     assert isinstance(df_a.exceptAll(df_b), DataSet)
     assert isinstance(df_a.subtract(df_b), DataSet)
+    assert isinstance(df_a.intersect(df_plain), DataFrame)
+    assert isinstance(df_a.intersectAll(df_plain), DataFrame)
+    assert isinstance(df_a.exceptAll(df_plain), DataFrame)
+    assert isinstance(df_a.subtract(df_plain), DataFrame)
+
+    assert isinstance(DataSetImplements.union(df_a, df_plain), DataFrame)
+    assert isinstance(DataSetImplements.unionAll(df_a, df_plain), DataFrame)
+    assert isinstance(DataSetImplements.intersect(df_a, df_plain), DataFrame)
+    assert isinstance(DataSetImplements.intersectAll(df_a, df_plain), DataFrame)
+    assert isinstance(DataSetImplements.exceptAll(df_a, df_plain), DataFrame)
+    assert isinstance(DataSetImplements.subtract(df_a, df_plain), DataFrame)
 
 
 def test_schema_property_of_dataset(spark: SparkSession):
