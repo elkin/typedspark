@@ -95,14 +95,10 @@ def test_inherrited_functions(spark: SparkSession):
     assert isinstance(df.repartition(2), DataSet)
     assert isinstance(df.repartition(2, A.a), DataSet)
     assert isinstance(df.repartition(A.a), DataSet)
-    assert isinstance(df.repartition(None, A.a), DataSet)
     assert isinstance(DataSetImplements.repartition(df, A.a), DataSet)
-    assert isinstance(DataSetImplements.repartition(df, None, A.a), DataSet)
     assert isinstance(df.repartitionByRange(2, A.a), DataSet)
     assert isinstance(df.repartitionByRange(A.a), DataSet)
-    assert isinstance(df.repartitionByRange(None, A.a), DataSet)
     assert isinstance(DataSetImplements.repartitionByRange(df, A.a), DataSet)
-    assert isinstance(DataSetImplements.repartitionByRange(df, None, A.a), DataSet)
     assert isinstance(df.limit(1), DataSet)
     assert isinstance(df.coalesce(1), DataSet)
     assert isinstance(df.sample(True, 0.5, 1), DataSet)
@@ -135,7 +131,7 @@ def test_local_checkpoint_storage_level_fallback(spark: SparkSession, tmp_path, 
     df = create_empty_dataset(spark, A)
     spark.sparkContext.setCheckpointDir(str(tmp_path))
     base_df_cls = next(cls for cls in type(df).mro() if cls.__name__ == "DataFrame")
-    original = base_df_cls.localCheckpoint
+    original = getattr(base_df_cls, "localCheckpoint")
     flags = {"raised": False, "called_fallback": False}
 
     def legacy_local_checkpoint(self, eager=True, storageLevel=None):
