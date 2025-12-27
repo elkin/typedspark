@@ -1,4 +1,5 @@
 import functools
+import inspect
 
 import pandas as pd
 import pytest
@@ -121,6 +122,16 @@ def test_inherrited_checkpoint_functions(spark: SparkSession, tmp_path):
     spark.sparkContext.setCheckpointDir(str(tmp_path))
     assert isinstance(df.localCheckpoint(), DataSet)
     assert isinstance(df.checkpoint(), DataSet)
+
+
+def test_local_checkpoint_storage_level_fallback(spark: SparkSession, tmp_path):
+    signature = inspect.signature(DataFrame.localCheckpoint)
+    if "storageLevel" in signature.parameters:
+        pytest.skip("localCheckpoint supports storageLevel in this Spark version")
+
+    df = create_empty_dataset(spark, A)
+    spark.sparkContext.setCheckpointDir(str(tmp_path))
+    assert isinstance(df.localCheckpoint(storageLevel=StorageLevel.MEMORY_AND_DISK), DataSet)
 
 
 def test_inherrited_drop_duplicates_within_watermark(spark: SparkSession):

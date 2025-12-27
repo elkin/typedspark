@@ -248,9 +248,15 @@ class DataSetImplements(DataFrame, Generic[_Protocol, _Implementation]):
     def localCheckpoint(  # noqa: N802
         self, eager: bool = True, storageLevel: Optional[StorageLevel] = None
     ) -> DataSet[_Implementation]:
-        return DataSet[self._schema_annotations](  # type: ignore[name-defined]
-            super().localCheckpoint(eager, storageLevel)
-        )
+        try:
+            if storageLevel is None:
+                res = super().localCheckpoint(eager)
+            else:
+                res = super().localCheckpoint(eager, storageLevel)
+        except TypeError:
+            # Fallback for Spark versions that don't accept storageLevel.
+            res = super().localCheckpoint(eager)
+        return DataSet[self._schema_annotations](res)  # type: ignore
 
     def checkpoint(self, eager: bool = True) -> DataSet[_Implementation]:
         return DataSet[self._schema_annotations](super().checkpoint(eager))  # type: ignore
@@ -675,9 +681,15 @@ class DataSet(DataSetImplements[_Schema, _Schema]):
     def localCheckpoint(  # noqa: N802
         self, eager: bool = True, storageLevel: Optional[StorageLevel] = None
     ) -> DataSet[_Schema]:
-        return DataSet[self._schema_annotations](  # type: ignore[name-defined]
-            super().localCheckpoint(eager, storageLevel)
-        )
+        try:
+            if storageLevel is None:
+                res = super().localCheckpoint(eager)
+            else:
+                res = super().localCheckpoint(eager, storageLevel)
+        except TypeError:
+            # Fallback for Spark versions that don't accept storageLevel.
+            res = super().localCheckpoint(eager)
+        return DataSet[self._schema_annotations](res)  # type: ignore
 
     def checkpoint(self, eager: bool = True) -> DataSet[_Schema]:
         return DataSet[self._schema_annotations](super().checkpoint(eager))  # type: ignore
