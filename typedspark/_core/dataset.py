@@ -82,6 +82,82 @@ class DataSetImplements(DataFrame, Generic[_Protocol, _Implementation]):
     def distinct(self) -> DataSet[_Implementation]:  # pylint: disable=C0116
         return DataSet[self._schema_annotations](super().distinct())  # type: ignore
 
+    def dropDuplicates(
+        self, subset: Optional[List[str]] = None
+    ) -> DataSet[_Implementation]:  # noqa: N802
+        return DataSet[self._schema_annotations](super().dropDuplicates(subset))  # type: ignore
+
+    def drop_duplicates(
+        self, subset: Optional[List[str]] = None
+    ) -> DataSet[_Implementation]:
+        return DataSet[self._schema_annotations](super().drop_duplicates(subset))  # type: ignore
+
+    def dropDuplicatesWithinWatermark(
+        self, subset: Optional[List[str]] = None
+    ) -> DataSet[_Implementation]:  # noqa: N802
+        return DataSet[self._schema_annotations](
+            super().dropDuplicatesWithinWatermark(subset)
+        )  # type: ignore
+
+    def dropna(
+        self, how: str = "any", thresh: Optional[int] = None, subset: Optional[List[str]] = None
+    ) -> DataSet[_Implementation]:
+        return DataSet[self._schema_annotations](
+            super().dropna(how=how, thresh=thresh, subset=subset)
+        )  # type: ignore
+
+    def fillna(self, value, subset: Optional[List[str]] = None) -> DataSet[_Implementation]:
+        return DataSet[self._schema_annotations](super().fillna(value, subset))  # type: ignore
+
+    def replace(
+        self, to_replace, value=None, subset: Optional[List[str]] = None
+    ) -> DataSet[_Implementation]:
+        return DataSet[self._schema_annotations](
+            super().replace(to_replace, value, subset)
+        )  # type: ignore
+
+    def repartition(
+        self, numPartitions: Optional[int] = None, *cols
+    ) -> DataSet[_Implementation]:
+        return DataSet[self._schema_annotations](
+            super().repartition(numPartitions, *cols)
+        )  # type: ignore
+
+    def repartitionByRange(
+        self, numPartitions: Optional[int] = None, *cols
+    ) -> DataSet[_Implementation]:  # noqa: N802
+        return DataSet[self._schema_annotations](
+            super().repartitionByRange(numPartitions, *cols)
+        )  # type: ignore
+
+    def limit(self, num: int) -> DataSet[_Implementation]:  # pylint: disable=C0116
+        return DataSet[self._schema_annotations](super().limit(num))  # type: ignore
+
+    def coalesce(self, numPartitions: int) -> DataSet[_Implementation]:  # pylint: disable=C0116
+        return DataSet[self._schema_annotations](super().coalesce(numPartitions))  # type: ignore
+
+    def sample(self, *args, **kwargs) -> DataSet[_Implementation]:
+        return DataSet[self._schema_annotations](super().sample(*args, **kwargs))  # type: ignore
+
+    def sampleBy(self, col, fractions, seed: Optional[int] = None) -> DataSet[_Implementation]:
+        return DataSet[self._schema_annotations](
+            super().sampleBy(col, fractions, seed)
+        )  # type: ignore
+
+    def sort(self, *cols, **kwargs) -> DataSet[_Implementation]:
+        return DataSet[self._schema_annotations](super().sort(*cols, **kwargs))  # type: ignore
+
+    def sortWithinPartitions(self, *cols, **kwargs) -> DataSet[_Implementation]:  # noqa: N802
+        return DataSet[self._schema_annotations](
+            super().sortWithinPartitions(*cols, **kwargs)
+        )  # type: ignore
+
+    def localCheckpoint(self, eager: bool = True) -> DataSet[_Implementation]:  # noqa: N802
+        return DataSet[self._schema_annotations](super().localCheckpoint(eager))  # type: ignore
+
+    def checkpoint(self, eager: bool = True) -> DataSet[_Implementation]:
+        return DataSet[self._schema_annotations](super().checkpoint(eager))  # type: ignore
+
     def filter(self, condition) -> DataSet[_Implementation]:  # type: ignore[override]
         """Filters rows using the given condition."""
         return DataSet[self._schema_annotations](super().filter(condition))  # type: ignore
@@ -132,6 +208,92 @@ class DataSetImplements(DataFrame, Generic[_Protocol, _Implementation]):
 
     def orderBy(self, *args, **kwargs) -> DataSet[_Implementation]:  # type: ignore  # noqa: N802, E501  # pylint: disable=C0116, C0103
         return DataSet[self._schema_annotations](super().orderBy(*args, **kwargs))  # type: ignore
+
+    def hint(self, name: str, *parameters) -> DataSet[_Implementation]:
+        return DataSet[self._schema_annotations](
+            super().hint(name, *parameters)
+        )  # type: ignore
+
+    def observe(self, *args, **kwargs) -> DataSet[_Implementation]:
+        return DataSet[self._schema_annotations](super().observe(*args, **kwargs))  # type: ignore
+
+    @overload
+    def union(self, other: DataSet[_Implementation]) -> DataSet[_Implementation]: ...  # pragma: no cover
+
+    @overload
+    def union(self, other: DataFrame) -> DataFrame: ...  # pragma: no cover
+
+    def union(self, other: DataFrame) -> DataFrame:
+        res = super().union(other)
+        if isinstance(other, DataSet) and other._schema_annotations == self._schema_annotations:
+            return DataSet[self._schema_annotations](res)  # type: ignore
+        return res
+
+    @overload
+    def unionAll(  # noqa: N802
+        self, other: DataSet[_Implementation]
+    ) -> DataSet[_Implementation]: ...  # pragma: no cover
+
+    @overload
+    def unionAll(self, other: DataFrame) -> DataFrame: ...  # pragma: no cover
+
+    def unionAll(self, other: DataFrame) -> DataFrame:  # noqa: N802
+        res = super().unionAll(other)
+        if isinstance(other, DataSet) and other._schema_annotations == self._schema_annotations:
+            return DataSet[self._schema_annotations](res)  # type: ignore
+        return res
+
+    @overload
+    def intersect(self, other: DataSet[_Implementation]) -> DataSet[_Implementation]: ...  # pragma: no cover
+
+    @overload
+    def intersect(self, other: DataFrame) -> DataFrame: ...  # pragma: no cover
+
+    def intersect(self, other: DataFrame) -> DataFrame:
+        res = super().intersect(other)
+        if isinstance(other, DataSet) and other._schema_annotations == self._schema_annotations:
+            return DataSet[self._schema_annotations](res)  # type: ignore
+        return res
+
+    @overload
+    def intersectAll(  # noqa: N802
+        self, other: DataSet[_Implementation]
+    ) -> DataSet[_Implementation]: ...  # pragma: no cover
+
+    @overload
+    def intersectAll(self, other: DataFrame) -> DataFrame: ...  # pragma: no cover
+
+    def intersectAll(self, other: DataFrame) -> DataFrame:  # noqa: N802
+        res = super().intersectAll(other)
+        if isinstance(other, DataSet) and other._schema_annotations == self._schema_annotations:
+            return DataSet[self._schema_annotations](res)  # type: ignore
+        return res
+
+    @overload
+    def exceptAll(  # noqa: N802
+        self, other: DataSet[_Implementation]
+    ) -> DataSet[_Implementation]: ...  # pragma: no cover
+
+    @overload
+    def exceptAll(self, other: DataFrame) -> DataFrame: ...  # pragma: no cover
+
+    def exceptAll(self, other: DataFrame) -> DataFrame:  # noqa: N802
+        res = super().exceptAll(other)
+        if isinstance(other, DataSet) and other._schema_annotations == self._schema_annotations:
+            return DataSet[self._schema_annotations](res)  # type: ignore
+        return res
+
+    @overload
+    def subtract(self, other: DataSet[_Implementation]) -> DataSet[_Implementation]: ...  # pragma: no cover
+
+    @overload
+    def subtract(self, other: DataFrame) -> DataFrame: ...  # pragma: no cover
+
+    def subtract(self, other: DataFrame) -> DataFrame:
+        res = super().subtract(other)
+        if isinstance(other, DataSet) and other._schema_annotations == self._schema_annotations:
+            return DataSet[self._schema_annotations](res)  # type: ignore
+        return res
 
     def transform(
         self,
@@ -259,6 +421,76 @@ class DataSet(DataSetImplements[_Schema, _Schema]):
     def distinct(self) -> DataSet[_Schema]:  # pylint: disable=C0116
         return DataSet[self._schema_annotations](super().distinct())  # type: ignore
 
+    def dropDuplicates(self, subset: Optional[List[str]] = None) -> DataSet[_Schema]:  # noqa: N802
+        return DataSet[self._schema_annotations](super().dropDuplicates(subset))  # type: ignore
+
+    def drop_duplicates(self, subset: Optional[List[str]] = None) -> DataSet[_Schema]:
+        return DataSet[self._schema_annotations](super().drop_duplicates(subset))  # type: ignore
+
+    def dropDuplicatesWithinWatermark(
+        self, subset: Optional[List[str]] = None
+    ) -> DataSet[_Schema]:  # noqa: N802
+        return DataSet[self._schema_annotations](
+            super().dropDuplicatesWithinWatermark(subset)
+        )  # type: ignore
+
+    def dropna(
+        self, how: str = "any", thresh: Optional[int] = None, subset: Optional[List[str]] = None
+    ) -> DataSet[_Schema]:
+        return DataSet[self._schema_annotations](
+            super().dropna(how=how, thresh=thresh, subset=subset)
+        )  # type: ignore
+
+    def fillna(self, value, subset: Optional[List[str]] = None) -> DataSet[_Schema]:
+        return DataSet[self._schema_annotations](super().fillna(value, subset))  # type: ignore
+
+    def replace(
+        self, to_replace, value=None, subset: Optional[List[str]] = None
+    ) -> DataSet[_Schema]:
+        return DataSet[self._schema_annotations](
+            super().replace(to_replace, value, subset)
+        )  # type: ignore
+
+    def repartition(self, numPartitions: Optional[int] = None, *cols) -> DataSet[_Schema]:
+        return DataSet[self._schema_annotations](
+            super().repartition(numPartitions, *cols)
+        )  # type: ignore
+
+    def repartitionByRange(
+        self, numPartitions: Optional[int] = None, *cols
+    ) -> DataSet[_Schema]:  # noqa: N802
+        return DataSet[self._schema_annotations](
+            super().repartitionByRange(numPartitions, *cols)
+        )  # type: ignore
+
+    def limit(self, num: int) -> DataSet[_Schema]:  # pylint: disable=C0116
+        return DataSet[self._schema_annotations](super().limit(num))  # type: ignore
+
+    def coalesce(self, numPartitions: int) -> DataSet[_Schema]:  # pylint: disable=C0116
+        return DataSet[self._schema_annotations](super().coalesce(numPartitions))  # type: ignore
+
+    def sample(self, *args, **kwargs) -> DataSet[_Schema]:
+        return DataSet[self._schema_annotations](super().sample(*args, **kwargs))  # type: ignore
+
+    def sampleBy(self, col, fractions, seed: Optional[int] = None) -> DataSet[_Schema]:
+        return DataSet[self._schema_annotations](
+            super().sampleBy(col, fractions, seed)
+        )  # type: ignore
+
+    def sort(self, *cols, **kwargs) -> DataSet[_Schema]:
+        return DataSet[self._schema_annotations](super().sort(*cols, **kwargs))  # type: ignore
+
+    def sortWithinPartitions(self, *cols, **kwargs) -> DataSet[_Schema]:  # noqa: N802
+        return DataSet[self._schema_annotations](
+            super().sortWithinPartitions(*cols, **kwargs)
+        )  # type: ignore
+
+    def localCheckpoint(self, eager: bool = True) -> DataSet[_Schema]:  # noqa: N802
+        return DataSet[self._schema_annotations](super().localCheckpoint(eager))  # type: ignore
+
+    def checkpoint(self, eager: bool = True) -> DataSet[_Schema]:
+        return DataSet[self._schema_annotations](super().checkpoint(eager))  # type: ignore
+
     def filter(self, condition) -> DataSet[_Schema]:  # type: ignore[override]
         """Filters rows using the given condition."""
         return DataSet[self._schema_annotations](super().filter(condition))  # type: ignore
@@ -309,6 +541,84 @@ class DataSet(DataSetImplements[_Schema, _Schema]):
 
     def orderBy(self, *args, **kwargs) -> DataSet[_Schema]:  # type: ignore  # noqa: N802, E501  # pylint: disable=C0116, C0103
         return DataSet[self._schema_annotations](super().orderBy(*args, **kwargs))  # type: ignore
+
+    def hint(self, name: str, *parameters) -> DataSet[_Schema]:
+        return DataSet[self._schema_annotations](super().hint(name, *parameters))  # type: ignore
+
+    def observe(self, *args, **kwargs) -> DataSet[_Schema]:
+        return DataSet[self._schema_annotations](super().observe(*args, **kwargs))  # type: ignore
+
+    @overload
+    def union(self, other: DataSet[_Schema]) -> DataSet[_Schema]: ...  # pragma: no cover
+
+    @overload
+    def union(self, other: DataFrame) -> DataFrame: ...  # pragma: no cover
+
+    def union(self, other: DataFrame) -> DataFrame:
+        res = super().union(other)
+        if isinstance(other, DataSet) and other._schema_annotations == self._schema_annotations:
+            return DataSet[self._schema_annotations](res)  # type: ignore
+        return res
+
+    @overload
+    def unionAll(self, other: DataSet[_Schema]) -> DataSet[_Schema]: ...  # pragma: no cover
+
+    @overload
+    def unionAll(self, other: DataFrame) -> DataFrame: ...  # pragma: no cover
+
+    def unionAll(self, other: DataFrame) -> DataFrame:  # noqa: N802
+        res = super().unionAll(other)
+        if isinstance(other, DataSet) and other._schema_annotations == self._schema_annotations:
+            return DataSet[self._schema_annotations](res)  # type: ignore
+        return res
+
+    @overload
+    def intersect(self, other: DataSet[_Schema]) -> DataSet[_Schema]: ...  # pragma: no cover
+
+    @overload
+    def intersect(self, other: DataFrame) -> DataFrame: ...  # pragma: no cover
+
+    def intersect(self, other: DataFrame) -> DataFrame:
+        res = super().intersect(other)
+        if isinstance(other, DataSet) and other._schema_annotations == self._schema_annotations:
+            return DataSet[self._schema_annotations](res)  # type: ignore
+        return res
+
+    @overload
+    def intersectAll(self, other: DataSet[_Schema]) -> DataSet[_Schema]: ...  # pragma: no cover
+
+    @overload
+    def intersectAll(self, other: DataFrame) -> DataFrame: ...  # pragma: no cover
+
+    def intersectAll(self, other: DataFrame) -> DataFrame:  # noqa: N802
+        res = super().intersectAll(other)
+        if isinstance(other, DataSet) and other._schema_annotations == self._schema_annotations:
+            return DataSet[self._schema_annotations](res)  # type: ignore
+        return res
+
+    @overload
+    def exceptAll(self, other: DataSet[_Schema]) -> DataSet[_Schema]: ...  # pragma: no cover
+
+    @overload
+    def exceptAll(self, other: DataFrame) -> DataFrame: ...  # pragma: no cover
+
+    def exceptAll(self, other: DataFrame) -> DataFrame:  # noqa: N802
+        res = super().exceptAll(other)
+        if isinstance(other, DataSet) and other._schema_annotations == self._schema_annotations:
+            return DataSet[self._schema_annotations](res)  # type: ignore
+        return res
+
+    @overload
+    def subtract(self, other: DataSet[_Schema]) -> DataSet[_Schema]: ...  # pragma: no cover
+
+    @overload
+    def subtract(self, other: DataFrame) -> DataFrame: ...  # pragma: no cover
+
+    def subtract(self, other: DataFrame) -> DataFrame:
+        res = super().subtract(other)
+        if isinstance(other, DataSet) and other._schema_annotations == self._schema_annotations:
+            return DataSet[self._schema_annotations](res)  # type: ignore
+        return res
 
     def transform(
         self,
