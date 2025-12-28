@@ -1,4 +1,5 @@
 import functools
+from typing import cast
 
 import pandas as pd
 import pytest
@@ -96,9 +97,13 @@ def test_inherrited_functions(spark: SparkSession):
     assert isinstance(df.repartition(2, A.a), DataSet)
     assert isinstance(df.repartition(A.a), DataSet)
     assert isinstance(DataSetImplements.repartition(df, A.a), DataSet)
+    assert isinstance(df.repartition(cast(int, None), A.a), DataSet)
+    assert isinstance(DataSetImplements.repartition(df, cast(int, None), A.a), DataSet)
     assert isinstance(df.repartitionByRange(2, A.a), DataSet)
     assert isinstance(df.repartitionByRange(A.a), DataSet)
     assert isinstance(DataSetImplements.repartitionByRange(df, A.a), DataSet)
+    assert isinstance(df.repartitionByRange(cast(int, None), A.a), DataSet)
+    assert isinstance(DataSetImplements.repartitionByRange(df, cast(int, None), A.a), DataSet)
     assert isinstance(df.limit(1), DataSet)
     assert isinstance(df.coalesce(1), DataSet)
     assert isinstance(df.sample(True, 0.5, 1), DataSet)
